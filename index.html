@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Inventory SGC">
+<meta name="theme-color" content="#3D5A44">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<title>Sistem Inventory SGC</title>
+<style>
+:root { --green:#059669; --dark:#2E3D32; --muted:#7A907E; --bg:#F9F6EE;
+  --header:#3D5A44; --card:white; --red:#DC2626; --amber:#D97706; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;
+  background: var(--bg); color: var(--dark); font-size: 14px;
+  -webkit-user-select: none; user-select: none;
+  padding-top: env(safe-area-inset-top); padding-bottom: 60px; }
+/* Header */
+#header { background: var(--header); color: white; padding: 12px 16px;
+  display: flex; justify-content: space-between; align-items: center;
+  position: sticky; top: 0; z-index: 100;
+  padding-top: calc(12px + env(safe-area-inset-top)); }
+#header h1 { font-size: 16px; font-weight: 700; }
+#header .live { font-size: 10px; color: #22C55E; }
+#header .menu-btn { font-size: 20px; cursor: pointer; padding: 4px 8px; }
+/* Bottom Nav */
+#nav { position: fixed; bottom: 0; left: 0; right: 0; background: white;
+  display: flex; border-top: 1px solid #eee; z-index: 100;
+  padding-bottom: env(safe-area-inset-bottom); }
+.nav-item { flex: 1; text-align: center; padding: 6px 2px 4px; cursor: pointer;
+  color: var(--muted); font-size: 9px; transition: color .2s; }
+.nav-item.active { color: var(--green); font-weight: 700; }
+.nav-item .icon { font-size: 18px; display: block; line-height: 1.2; }
+/* Tabs */
+.tab { display: none; padding: 14px; min-height: calc(100vh - 120px); }
+.tab.active { display: block; animation: fadeIn .3s ease; }
+@keyframes fadeIn { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:none; } }
+/* Cards */
+.card { background: var(--card); border-radius: 12px; padding: 12px;
+  margin-bottom: 8px; box-shadow: 0 2px 8px rgba(0,0,0,.06); }
+.section { font-size: 14px; color: var(--green); font-weight: 700; margin: 12px 0 6px; }
+.btn { background: #E8F0EA; border: 1px solid var(--green); border-radius: 10px;
+  padding: 12px; text-align: center; color: var(--green); font-weight: 700;
+  font-size: 14px; margin-bottom: 10px; cursor: pointer; transition: background .2s; }
+.btn:active { background: #d0e6d4; }
+.btn-primary { background: var(--green); color: white; border: none; border-radius: 10px;
+  padding: 12px; text-align: center; font-weight: 700; font-size: 14px;
+  width: 100%; cursor: pointer; margin: 6px 0; }
+.btn-row { display: flex; gap: 6px; margin: 6px 0; }
+.btn-row .btn { flex: 1; }
+.btn-orange { background: #FEF3C7; border-color: var(--amber); color: var(--amber); }
+/* Stats */
+.stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 6px; }
+.stat-card { border-radius: 10px; padding: 10px; text-align: center; }
+.stat-card .num { font-size: 22px; font-weight: 700; }
+.stat-card .lbl { font-size: 10px; font-weight: 700; color: #5F6F64; }
+/* Usage grid */
+.usage-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+.ug { background: #F0F5F1; border-radius: 8px; padding: 6px 8px; }
+.ug .val { font-size: 13px; font-weight: 700; color: var(--green); }
+.ug .key { font-size: 9px; color: var(--muted); }
+/* Rows */
+.row-card { background: white; border-radius: 10px; padding: 9px 12px;
+  margin-bottom: 5px; box-shadow: 0 1px 4px rgba(0,0,0,.05); }
+.row-title { font-size: 13px; font-weight: 700; }
+.row-sub { font-size: 11px; color: var(--muted); }
+/* Input */
+input, select { width: 100%; border: 1px solid #ddd; border-radius: 8px;
+  padding: 10px 12px; font-size: 14px; margin-bottom: 8px;
+  background: white; color: var(--dark); -webkit-appearance: none; }
+input:focus { outline: none; border-color: var(--green); }
+/* Chat */
+.bubble { max-width: 82%; padding: 10px 12px; border-radius: 14px;
+  margin: 6px 0; font-size: 13px; line-height: 1.5; word-wrap: break-word; }
+.bubble.user { background: #E8F0EA; margin-left: auto; }
+.bubble.bot { background: white; border: 1px solid #E8E8E8; }
+/* Drawer */
+#drawer-bg { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.4);
+  z-index: 200; }
+#drawer { position: fixed; top: 0; left: -80%; width: 78%; height: 100%;
+  background: white; z-index: 201; transition: left .26s ease;
+  overflow-y: auto; padding: 20px 0;
+  padding-top: calc(20px + env(safe-area-inset-top)); }
+#drawer.open { left: 0; }
+.drawer-item { padding: 13px 18px; font-size: 14px; cursor: pointer; }
+.drawer-item:active { background: #f0f5f1; }
+/* Loading */
+.spinner { width: 24px; height: 24px; border: 3px solid #E8F0EA;
+  border-top-color: var(--green); border-radius: 50%;
+  animation: spin .8s linear infinite; margin: 16px auto; }
+@keyframes spin { to { transform: rotate(360deg); } }
+/* Toast */
+#toast { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
+  background: #333; color: white; padding: 10px 20px; border-radius: 20px;
+  font-size: 13px; z-index: 999; display: none; }
+.high { color: var(--red); font-weight: 700; }
+.med { color: var(--amber); }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div id="header">
+  <span class="menu-btn" onclick="toggleDrawer()">☰</span>
+  <h1 id="hdrTitle">Beranda</h1>
+  <span class="live" id="syncBadge">● Live</span>
+</div>
+
+<!-- DRAWER -->
+<div id="drawer-bg" onclick="toggleDrawer()"></div>
+<div id="drawer">
+  <div style="padding:0 18px 10px;font-size:18px;font-weight:700">☰ Menu</div>
+  <div style="padding:0 18px 12px;font-size:11px;color:var(--muted)">Engineering SGC — Somerset</div>
+  <div class="drawer-item" onclick="switchTab(6);toggleDrawer()">▦  Master Barang</div>
+  <div class="drawer-item" onclick="switchTab(7);toggleDrawer()">⤵  Barang Masuk</div>
+  <div class="drawer-item" onclick="switchTab(8);toggleDrawer()">📋  Stock Opname</div>
+  <div class="drawer-item" onclick="switchTab(9);toggleDrawer()">📄  Laporan</div>
+  <div class="drawer-item" onclick="switchTab(10);toggleDrawer()">🏗️  CAPEX Stock</div>
+  <div class="drawer-item" onclick="switchTab(11);toggleDrawer()">⚙️  Pengaturan</div>
+  <div class="drawer-item" style="color:var(--red)" onclick="logout()">🚪  Keluar</div>
+</div>
+
+<!-- LOGIN -->
+<div id="loginScreen" style="display:none;padding:40px 20px;text-align:center">
+  <div style="font-size:24px;font-weight:700;color:var(--header);margin-bottom:20px">Sistem Inventory<br>Somerset Grand Citra</div>
+  <input id="loginUser" placeholder="Username" style="margin-bottom:10px">
+  <input id="loginPass" type="password" placeholder="Password">
+  <div class="btn-primary" style="margin-top:14px" onclick="doLogin()">Login</div>
+  <div id="loginErr" style="color:var(--red);font-size:12px;margin-top:8px"></div>
+</div>
+
+<!-- TAB 0: BERANDA -->
+<div class="tab" id="tab0">
+  <div class="card" id="profileCard"></div>
+  <div class="stats-grid" id="statsGrid"></div>
+  <div class="section">⚡ Pemakaian Listrik & Air (Harian)</div>
+  <div class="card" id="usageCard"><div class="spinner"></div></div>
+  <div class="section">📊 Barang keluar — 7 hari terakhir</div>
+  <div class="card" id="chartCard"><div class="spinner"></div></div>
+  <div class="section" style="color:var(--amber)">⚠ Stok menipis</div>
+  <div id="lowStock"><div class="spinner"></div></div>
+</div>
+
+<!-- TAB 1: AI -->
+<div class="tab" id="tab1">
+  <div style="font-size:16px;font-weight:700;color:var(--green)">🤖 AI Assistant</div>
+  <div style="font-size:11px;color:var(--muted)">Powered by OpenRouter • Gratis</div>
+  <div class="btn-row" style="margin:8px 0">
+    <div class="btn" onclick="aiAsk('Analisis stok menipis, beri rekomendasi.')">📉 Stok</div>
+    <div class="btn" onclick="aiAsk('Ringkasan singkat inventory.')">📦 Ringkasan</div>
+    <div class="btn" onclick="aiAsk('Analisis energi, saran penghematan.')">⚡ Energi</div>
+  </div>
+  <div id="chatBox" style="min-height:200px"></div>
+  <div style="display:flex;gap:6px;margin-top:8px">
+    <input id="aiInput" placeholder="Tulis pertanyaan…" style="flex:1;margin:0">
+    <div class="btn-primary" style="width:auto;padding:10px 16px;margin:0" onclick="aiSend()">➤</div>
+  </div>
+</div>
+
+<!-- TAB 2: BARANG KELUAR -->
+<div class="tab" id="tab2">
+  <div class="card">
+    <div style="font-size:14px;font-weight:700;color:var(--green)">📤 Input Barang Keluar</div>
+    <div style="font-size:10px;color:var(--muted)">Pilih barang, isi jumlah, kirim.</div>
+    <div class="btn" style="margin-top:8px" onclick="toast('Pilih dari daftar master')">＋ Pilih Barang</div>
+  </div>
+  <div class="section">📊 Barang Keluar — 7 Hari Terakhir</div>
+  <div class="card" id="keluarChart"><div class="spinner"></div></div>
+  <div class="section">🕒 Riwayat Keluar</div>
+  <div id="keluarList"><div class="spinner"></div></div>
+</div>
+
+<!-- TAB 3: ENERGI -->
+<div class="tab" id="tab3">
+  <div class="btn" onclick="toast('Form input energi')">＋ Input Pembacaan Energi</div>
+  <div class="card" id="energiUsage"><div class="spinner"></div></div>
+  <div class="section">📊 Rekap 7 Hari — Listrik & Air</div>
+  <div class="card" id="energiChart"><div class="spinner"></div></div>
+  <div class="section">📜 History — 7 Hari Terakhir</div>
+  <div id="energiHistory"><div class="spinner"></div></div>
+</div>
+
+<!-- TAB 4: KWH METER -->
+<div class="tab" id="tab4">
+  <div style="font-size:16px;font-weight:700;color:var(--green)">⚡ kWh Meter Tenant</div>
+  <div style="font-size:11px;color:var(--muted);margin-bottom:8px">Stand meter per area & konsumsi harian</div>
+  <div class="btn" onclick="toast('Form input kWh meter')">＋ Input Pembacaan kWH</div>
+  <div class="section">📊 Konsumsi Terakhir</div>
+  <div id="kwhToday"><div class="spinner"></div></div>
+  <div class="section">📜 History 7 Hari Terakhir</div>
+  <div id="kwhHistory"><div class="spinner"></div></div>
+</div>
+
+<!-- TAB 5: PM AC -->
+<div class="tab" id="tab5">
+  <div style="font-size:16px;font-weight:700">🛠 PM AC — Dashboard</div>
+  <div style="font-size:11px;color:var(--muted)">Preventive Maintenance • 1 Phase</div>
+  <div class="btn" style="margin-top:8px" onclick="toast('Form input laporan PM')">＋ Input Laporan PM</div>
+  <div class="stats-grid" id="pmStats" style="margin-top:8px"></div>
+  <div id="pmLateAvg" style="color:var(--red);font-size:11px;font-weight:700;margin:4px 0"></div>
+  <div class="section">⚠️ Unit Terlambat (Top Overdue)</div>
+  <div id="pmOverdue"><div class="spinner"></div></div>
+</div>
+
+<!-- PLACEHOLDER TABS (drawer) -->
+<div class="tab" id="tab6"><div class="section">▦ Master Barang</div><div id="masterList"><div class="spinner"></div></div></div>
+<div class="tab" id="tab7"><div class="section">⤵ Barang Masuk</div><div class="card">Form input barang masuk (coming soon)</div></div>
+<div class="tab" id="tab8"><div class="section">📋 Stock Opname</div><div class="card">Stock opname (coming soon)</div></div>
+<div class="tab" id="tab9"><div class="section">📄 Laporan</div><div class="card">Laporan per periode (coming soon)</div></div>
+<div class="tab" id="tab10"><div class="section">🏗️ CAPEX Stock</div><div class="card">CAPEX stock (coming soon)</div></div>
+<div class="tab" id="tab11"><div class="section">⚙️ Pengaturan</div><div class="card">Pengaturan aplikasi (coming soon)</div></div>
+
+<!-- BOTTOM NAV -->
+<div id="nav">
+  <div class="nav-item active" onclick="switchTab(0)"><span class="icon">⌂</span>Beranda</div>
+  <div class="nav-item" onclick="switchTab(1)"><span class="icon">🤖</span>AI</div>
+  <div class="nav-item" onclick="switchTab(2)"><span class="icon">↑</span>Keluar</div>
+  <div class="nav-item" onclick="switchTab(3)"><span class="icon">⚡</span>Energi</div>
+  <div class="nav-item" onclick="switchTab(4)"><span class="icon">🔌</span>kWh</div>
+  <div class="nav-item" onclick="switchTab(5)"><span class="icon">🧰</span>PM AC</div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ============ CONFIG ============
+const API_BASE = 'https://script.google.com/macros/s/AKfycbwie5ASrLpq6d_6MvcUVc85OuudrMCZZb1fGEA5Vnf-TWOfJoM0HUPRRATgoWkwsN6W/exec';
+const BRIDGE_URL = 'https://script.google.com/macros/s/AKfycbxK1OCjptWZZ07KMOqUc1tf8HCfvAFWdn4A3WhqMWvjZsWtRWqVk_OutFuTS4JVcRJK/exec';
+const ENERGY_SS = '1XLMlrkjq4Ge-lRrrmhxVXeY4WtH9OHqjprMwSKBLiLA';
+const KWH_SS = '1Ki6bxp8oPTEqMLu0L-K7pr2gie9OoXrUb3EJHclUSp8';
+const PM_SS = '1ZYNtNjuiFqOJiPFfZpBi344shGi0d9BogQbBQZcP0CQ';
+const OR_KEY = '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';
+const OR_MODELS = ['nvidia/nemotron-3-nano-30b-a3b:free','google/gemma-4-31b-it:free'];
+const NAV_TITLES = ['Beranda','AI Assistant','Barang Keluar','Energi','kWh Meter Tenant','PM AC',
+  'Master Barang','Barang Masuk','Stock Opname','Laporan','CAPEX','Pengaturan'];
+
+let session = JSON.parse(localStorage.getItem('inv_session')||'null');
+let curTab = 0;
+let itemsCache = [];
+
+// ============ INIT ============
+window.addEventListener('load', () => {
+  if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
+  if(!session) { showLogin(); } else { showApp(); }
+});
+
+function showLogin() {
+  document.getElementById('loginScreen').style.display = 'block';
+  document.getElementById('header').style.display = 'none';
+  document.getElementById('nav').style.display = 'none';
+  document.querySelectorAll('.tab').forEach(t => t.style.display = 'none');
+}
+
+function showApp() {
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('header').style.display = 'flex';
+  document.getElementById('nav').style.display = 'flex';
+  document.getElementById('profileCard').innerHTML =
+    `<b>👤 ${session.nama}</b> (@${session.username})<br>
+     <span style="color:${session.role==='Admin'?'var(--amber)':'var(--green)'};font-size:11px">
+     ${session.role==='Admin'?'🛡 Administrator':'👤 User'}</span>`;
+  switchTab(0);
+  loadDashboard();
+  setInterval(() => { if(document.visibilityState==='visible') refreshCurrent(); }, 20000);
+}
+
+// ============ LOGIN ============
+async function doLogin() {
+  const u = document.getElementById('loginUser').value.trim();
+  const p = document.getElementById('loginPass').value.trim();
+  if(!u||!p) { document.getElementById('loginErr').textContent='Isi username & password'; return; }
+  try {
+    const r = await apiCall('loginUser', {username:u, password:p});
+    if(r.ok && r.data) {
+      session = {username:r.data.username||u, nama:r.data.nama||u, role:r.data.role||'User'};
+      localStorage.setItem('inv_session', JSON.stringify(session));
+      showApp();
+    } else {
+      document.getElementById('loginErr').textContent = 'Username atau password salah';
+    }
+  } catch(e) { document.getElementById('loginErr').textContent = 'Gagal: '+e.message; }
+}
+
+function logout() {
+  localStorage.removeItem('inv_session');
+  session = null;
+  showLogin();
+  toggleDrawer();
+}
+
+// ============ NAV ============
+function switchTab(i) {
+  curTab = i;
+  document.querySelectorAll('.tab').forEach((t,idx) => t.classList.toggle('active', idx===i));
+  document.querySelectorAll('.nav-item').forEach((n,idx) => n.classList.toggle('active', idx===i));
+  document.getElementById('hdrTitle').textContent = NAV_TITLES[i]||'';
+  refreshCurrent();
+}
+
+function refreshCurrent() {
+  if(curTab===0) loadDashboard();
+  else if(curTab===2) loadKeluar();
+  else if(curTab===3) loadEnergi();
+  else if(curTab===4) loadKwh();
+  else if(curTab===5) loadPmAc();
+  else if(curTab===6) loadMaster();
+  document.getElementById('syncBadge').textContent = '● Live • ' + new Date().toLocaleTimeString('id',{hour:'2-digit',minute:'2-digit'});
+}
+
+function toggleDrawer() {
+  const d = document.getElementById('drawer');
+  const bg = document.getElementById('drawer-bg');
+  const open = d.classList.toggle('open');
+  bg.style.display = open ? 'block' : 'none';
+}
+
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.style.display = 'block';
+  setTimeout(() => t.style.display = 'none', 2500);
+}
+
+function fmtNum(v) { return Math.round(v).toLocaleString('id'); }
+
+// ============ API ============
+async function apiCall(fn, params) {
+  let url = API_BASE + '?fn=' + encodeURIComponent(fn);
+  if(params) url += '&p=' + encodeURIComponent(JSON.stringify(params));
+  const r = await fetch(url);
+  return r.json();
+}
+
+async function fetchCsv(ssId, gid) {
+  const url = `https://docs.google.com/spreadsheets/d/${ssId}/export?format=csv&gid=${gid}`;
+  const r = await fetch(url);
+  const txt = await r.text();
+  return txt.split('\n').map(line => {
+    const row = []; let cell = '', inQ = false;
+    for(let c of line) {
+      if(c==='"') inQ=!inQ;
+      else if(c===','&&!inQ) { row.push(cell.trim()); cell=''; }
+      else cell += c;
+    }
+    row.push(cell.trim());
+    return row;
+  });
+}
+
+// ============ BERANDA ============
+async function loadDashboard() {
+  try {
+    const r = await apiCall('getDashboardStats');
+    if(r.ok && r.data) {
+      const d = r.data;
+      document.getElementById('statsGrid').innerHTML = `
+        <div class="stat-card" style="background:#E8F0EA"><div class="num" style="color:var(--green)">${d.totalJenis||0}</div><div class="lbl">TOTAL JENIS</div></div>
+        <div class="stat-card" style="background:#E8F0EA"><div class="num" style="color:var(--green)">${d.totalStok||0}</div><div class="lbl">TOTAL STOK</div></div>
+        <div class="stat-card" style="background:#FEF3C7"><div class="num" style="color:var(--amber)">${d.stokRendah||0}</div><div class="lbl">STOK MENIPIS</div></div>
+        <div class="stat-card" style="background:#E8F0EA"><div class="num" style="color:var(--green)">${d.keluarTotalUnit||0}</div><div class="lbl">KELUAR (UNIT)</div></div>`;
+    }
+    // Load items for low stock
+    const items = await apiCall('getItems');
+    if(items.ok && items.data) {
+      itemsCache = items.data;
+      let html = '';
+      items.data.filter(i => i.stok <= i.min_stok).slice(0,6).forEach(i => {
+        html += `<div class="row-card"><div class="row-title">${i.nama}</div><div class="row-sub">Stok ${fmtNum(i.stok)} / min ${fmtNum(i.min_stok)}</div></div>`;
+      });
+      document.getElementById('lowStock').innerHTML = html || '<div style="color:var(--green)">Semua stok aman 🎉</div>';
+    }
+    // Load keluar for chart
+    const kel = await apiCall('getBarangKeluar');
+    if(kel.ok && kel.data) renderBarChart('chartCard', kel.data);
+    // Usage card placeholder
+    document.getElementById('usageCard').innerHTML = '<div class="usage-grid"><div class="ug"><div class="val">Loading...</div><div class="key">Memuat data energi</div></div></div>';
+  } catch(e) { console.error(e); }
+}
+
+function renderBarChart(containerId, data) {
+  const vals = new Array(7).fill(0);
+  const lbls = [];
+  for(let i=6;i>=0;i--) {
+    const d = new Date(); d.setDate(d.getDate()-i);
+    lbls.push(d.getDate().toString().padStart(2,'0'));
+    const ds = d.toLocaleDateString('id',{day:'2-digit',month:'2-digit',year:'numeric'});
+    (data||[]).forEach(o => {
+      if(o.tanggal && o.tanggal.startsWith(ds)) vals[6-i] += o.jumlah||0;
+    });
+  }
+  const max = Math.max(1,...vals);
+  let html = '<div style="display:flex;align-items:end;justify-content:space-around;height:90px;padding:6px">';
+  vals.forEach((v,i) => {
+    const h = Math.max(4, v/max*70);
+    const c = i%2===0?'var(--green)':'var(--header)';
+    html += `<div style="text-align:center"><div style="font-size:9px;color:var(--muted)">${Math.round(v)}</div><div style="width:28px;height:${h}px;background:${c};border-radius:3px;margin:0 auto"></div><div style="font-size:9px;color:var(--muted)">${lbls[i]}</div></div>`;
+  });
+  html += '</div>';
+  document.getElementById(containerId).innerHTML = html;
+}
+
+// ============ BARANG KELUAR ============
+async function loadKeluar() {
+  try {
+    const r = await apiCall('getBarangKeluar');
+    if(r.ok && r.data) {
+      renderBarChart('keluarChart', r.data);
+      let html = '';
+      r.data.slice(0,15).forEach(o => {
+        html += `<div class="row-card"><div class="row-title">${o.nama_barang||'-'} ×${fmtNum(o.jumlah||0)}</div><div class="row-sub">${o.tanggal||'-'} • Rp ${fmtNum(o.harga_satuan||0)}/pcs • ${o.penanggung_jawab||'-'}</div></div>`;
+      });
+      document.getElementById('keluarList').innerHTML = html || 'Belum ada data.';
+    }
+  } catch(e) { console.error(e); }
+}
+
+// ============ ENERGI ============
+async function loadEnergi() {
+  document.getElementById('energiUsage').innerHTML = '<div class="usage-grid"><div class="ug"><div class="val">Memuat...</div><div class="key">Data energi</div></div></div>';
+  document.getElementById('energiHistory').innerHTML = '<div class="spinner"></div>';
+}
+
+// ============ KWH METER ============
+async function loadKwh() {
+  try {
+    const rows = await fetchCsv(KWH_SS, '0');
+    if(rows.length < 3) { document.getElementById('kwhToday').innerHTML='Belum ada data'; return; }
+    const AREAS = ['Eng Office','HK Office','Mezanine','Resto','Meeting Rm','Kool Spot',"Ruth's",'Spa','Den Kalaha'];
+    const start = Math.max(1, rows.length-8);
+    const stands=[],dates=[],names=[];
+    for(let i=start;i<rows.length;i++) {
+      const r=rows[i]; dates.push(r[0]||''); names.push(r[1]||'');
+      const s=[]; for(let j=0;j<9;j++) s.push(parseFloat((r[j+2]||'0').replace(/,/g,''))||0);
+      stands.push(s);
+    }
+    // Latest consumption
+    if(stands.length>=2) {
+      const prev=stands[stands.length-2], curr=stands[stands.length-1];
+      const cons=[]; let total=0;
+      for(let j=0;j<9;j++) { cons.push(Math.max(0,curr[j]-prev[j])); total+=cons[j]; }
+      let html = `<div class="card"><div class="row-title">📆 ${dates[dates.length-1]} • ${names[names.length-1]}</div>`;
+      html += `<div style="font-size:14px;color:var(--green);font-weight:700;margin:4px 0">Total: ${fmtNum(total)} kWH</div>`;
+      for(let j=0;j<9;j++) {
+        const pct = total>0?(cons[j]/total*100):0;
+        const cls = pct>30?'high':pct>15?'med':'';
+        html += `<div class="row-sub ${cls}">${AREAS[j]}: ${fmtNum(cons[j])} kWH (${pct.toFixed(1)}%)</div>`;
+      }
+      html += '</div>';
+      document.getElementById('kwhToday').innerHTML = html;
+    }
+    // History
+    let hHtml = '';
+    for(let i=stands.length-1;i>=1&&i>=stands.length-7;i--) {
+      const prev=stands[i-1],curr=stands[i];
+      const cons=[]; let total=0;
+      for(let j=0;j<9;j++) { cons.push(Math.max(0,curr[j]-prev[j])); total+=cons[j]; }
+      const sorted=[...Array(9).keys()].sort((a,b)=>cons[b]-cons[a]);
+      const top3 = sorted.slice(0,3).map(j=>`${AREAS[j]} ${(total>0?cons[j]/total*100:0).toFixed(0)}%`).join(', ');
+      hHtml += `<div class="row-card"><div class="row-title">📆 ${dates[i]} • ${names[i]}</div><div class="row-sub">Total: ${fmtNum(total)} kWH • ${top3}</div></div>`;
+    }
+    document.getElementById('kwhHistory').innerHTML = hHtml || 'Belum cukup data.';
+  } catch(e) { document.getElementById('kwhToday').innerHTML='Gagal: '+e.message; }
+}
+
+// ============ PM AC ============
+async function loadPmAc() {
+  try {
+    const rows = await fetchCsv(PM_SS, '1881260301');
+    let total=0, late=0;
+    const units=[];
+    let headerRow=-1, unitCol=-1;
+    for(let i=0;i<rows.length;i++) {
+      for(let j=0;j<rows[i].length;j++) {
+        if(rows[i][j].trim().toUpperCase()==='NO UNIT'){headerRow=i;unitCol=j;break;}
+      }
+      if(headerRow>=0) break;
+    }
+    if(headerRow>=0) {
+      for(let i=headerRow+1;i<rows.length;i++) {
+        const r=rows[i]; const no=(r[unitCol]||'').trim();
+        if(!/^\d{3,4}$/.test(no)) continue;
+        total++;
+        let status='';
+        for(let j=0;j<unitCol;j++) {
+          const v=(r[j]||'').trim().toLowerCase();
+          if(v==='late'||v==='on time'||v==='upcoming') status=v;
+        }
+        if(status==='late'||!status) late++;
+        units.push({no, floor:Math.floor(parseInt(no)/100), status:status||'late'});
+      }
+    }
+    document.getElementById('pmStats').innerHTML = `
+      <div class="stat-card" style="background:#E8F0EA"><div class="num" style="color:var(--green)">${total}</div><div class="lbl">TOTAL UNIT</div></div>
+      <div class="stat-card" style="background:#FDEAEA"><div class="num" style="color:var(--red)">${late}</div><div class="lbl">TERLAMBAT</div></div>`;
+    document.getElementById('pmLateAvg').textContent = late>0?`⚠ ${late} unit terlambat`:'';
+    let html='';
+    units.filter(u=>u.status==='late').slice(0,10).forEach(u=>{
+      html+=`<div class="row-card"><div class="row-title">Unit ${u.no} • Lantai ${u.floor}</div><div class="row-sub">⏰ Terlambat dari jadwal</div></div>`;
+    });
+    document.getElementById('pmOverdue').innerHTML = html||'<div style="color:var(--green)">✔ Semua unit tepat jadwal</div>';
+  } catch(e) { console.error(e); }
+}
+
+// ============ MASTER BARANG ============
+async function loadMaster() {
+  try {
+    const r = await apiCall('getItems');
+    if(r.ok&&r.data) {
+      let html=''; r.data.slice(0,30).forEach(i => {
+        html+=`<div class="row-card"><div class="row-title">${i.nama} [${i.kode}]</div><div class="row-sub">Stok ${fmtNum(i.stok)} • Beli Rp ${fmtNum(i.harga_beli||0)} • Jual Rp ${fmtNum(i.harga_jual||0)}</div></div>`;
+      });
+      document.getElementById('masterList').innerHTML = html;
+    }
+  } catch(e) { console.error(e); }
+}
+
+// ============ AI CHAT ============
+let chatHistory = [];
+function aiAddBubble(icon, text, isUser) {
+  const box = document.getElementById('chatBox');
+  box.innerHTML += `<div class="bubble ${isUser?'user':'bot'}" style="${isUser?'margin-left:auto;text-align:right':''}">${icon} ${text}</div>`;
+  box.scrollTop = box.scrollHeight;
+}
+
+function aiSend() {
+  const inp = document.getElementById('aiInput');
+  const q = inp.value.trim(); if(!q) return;
+  inp.value = '';
+  aiAsk(q);
+}
+
+async function aiAsk(q) {
+  aiAddBubble('🧑', q, true);
+  // Context
+  let ctx = 'Kamu AI assistant untuk inventory hotel Somerset Grand Citra Jakarta. Jawab Bahasa Indonesia, singkat.\n';
+  if(itemsCache.length) {
+    const low = itemsCache.filter(i=>i.stok<=i.min_stok);
+    ctx += `Data: ${itemsCache.length} item, ${low.length} stok menipis.\n`;
+  }
+  chatHistory.push({role:'user',content:ctx+'Pertanyaan: '+q});
+
+  for(const model of OR_MODELS) {
+    try {
+      const r = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+OR_KEY},
+        body: JSON.stringify({model, messages:[
+          {role:'system',content:'Kamu AI assistant inventory hotel Somerset. Jawab Bahasa Indonesia, singkat.'},
+          ...chatHistory.slice(-4)
+        ], max_tokens:1024})
+      });
+      if(r.status===429) continue;
+      const d = await r.json();
+      const ans = d.choices?.[0]?.message?.content || '(kosong)';
+      chatHistory.push({role:'assistant',content:ans});
+      aiAddBubble('🤖', ans.replace(/\n/g,'<br>'), false);
+      return;
+    } catch(e) { continue; }
+  }
+  aiAddBubble('🤖', 'Semua model sedang sibuk, coba lagi.', false);
+}
+
+// Init chat welcome
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('chatBox').innerHTML =
+    '<div class="bubble bot">🤖 Halo! Saya AI Assistant untuk Somerset Grand Citra. Tanya apa saja tentang inventory, PM AC, atau energi.</div>';
+});
+</script>
+</body>
+</html>
